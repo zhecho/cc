@@ -27,5 +27,5 @@ WORKDIR /workspace
 # Set default shell environment variable
 ENV SHELL=/bin/bash
 
-# Default command is bash
-CMD ["/bin/bash"]
+# Use bash as entrypoint
+ENTRYPOINT ["/bin/bash"]

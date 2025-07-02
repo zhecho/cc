@@ -15,12 +15,12 @@ A containerized version of Claude Code CLI for portable usage across different s
 mkdir -p ~/.claude
 ```
 
-2. **Run container with bash shell**:
+2. **Run container with interactive bash shell**:
 ```bash
 podman run --rm -it \
   -v ./your_project:/workspace \
   -v ~/.claude:/home/claude/.claude \
-  ghcr.io/zhecho/claude-code:latest -- bash
+  ghcr.io/zhecho/claude-code:latest
 ```
 
 3. **Inside container, run Claude Code**:
