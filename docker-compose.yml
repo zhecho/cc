@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  claude-code:
+    build: .
+    volumes:
+      - ./:/workspace
+      - ~/.claude:/home/claude/.claude
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
