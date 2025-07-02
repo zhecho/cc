@@ -15,33 +15,40 @@ A containerized version of Claude Code CLI for portable usage across different s
 mkdir -p ~/.claude
 ```
 
-2. **Run container**:
+2. **Run container with bash shell**:
 ```bash
 podman run --rm -it \
   -v ./your_project:/workspace \
   -v ~/.claude:/home/claude/.claude \
-  ghcr.io/zhecho/claude-code:latest
+  ghcr.io/zhecho/claude-code:latest -- bash
+```
+
+3. **Inside container, run Claude Code**:
+```bash
+claude --version
+claude
 ```
 
 ### Usage Examples
 
 ```bash
-# Interactive mode
+# Interactive bash session
 podman run --rm -it \
   -v $(pwd):/workspace \
   -v ~/.claude:/home/claude/.claude \
-  ghcr.io/zhecho/claude-code:latest
+  ghcr.io/zhecho/claude-code:latest -- bash
 
-# With arguments
-podman run --rm \
+# Run specific Claude command
+podman run --rm -it \
   -v $(pwd):/workspace \
   -v ~/.claude:/home/claude/.claude \
-  ghcr.io/zhecho/claude-code:latest --help
+  ghcr.io/zhecho/claude-code:latest -- bash -c "claude --version"
 
-# Version check
-podman run --rm \
+# Start bash and run Claude interactively
+podman run --rm -it \
+  -v $(pwd):/workspace \
   -v ~/.claude:/home/claude/.claude \
-  ghcr.io/zhecho/claude-code:latest --version
+  ghcr.io/zhecho/claude-code:latest -- bash -c "claude"
 ```
 
 ## Volume Mounts
