@@ -1,8 +1,7 @@
 FROM node:alpine
 
 # Create non-root user
-RUN addgroup -g 1000 claude && \
-    adduser -D -s /bin/sh -u 1000 -G claude claude
+RUN adduser -D -s /bin/sh claude
 
 # Install Claude Code CLI globally
 RUN npm install -g @anthropic-ai/claude-code
@@ -18,4 +17,4 @@ USER claude
 WORKDIR /workspace
 
 # Set entrypoint to Claude Code CLI
-ENTRYPOINT ["claude-code"]
+ENTRYPOINT ["node", "/usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js"]
