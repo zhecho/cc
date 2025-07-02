@@ -1,7 +1,10 @@
 FROM node:alpine
 
-# Create non-root user
-RUN adduser -D -s /bin/sh claude
+# Install bash
+RUN apk update && apk add --no-cache bash
+
+# Create non-root user with bash shell
+RUN adduser -D -s /bin/bash claude
 
 # Install Claude Code CLI globally
 RUN npm install -g @anthropic-ai/claude-code
