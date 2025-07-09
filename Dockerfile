@@ -9,29 +9,49 @@ RUN apk update && apk add --no-cache \
     tar \
     ca-certificates
 
-# Install AWS CLI v2 (latest)
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-    unzip awscliv2.zip && \
-    ./aws/install --bin-dir /aws-cli-bin --install-dir /aws-cli && \
-    rm -rf awscliv2.zip aws/
+# AWS CLI will be installed via pip in final stage
 
-# Install kubectl (latest stable)
-RUN KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt) && \
-    curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \
+# Install kubectl (latest stable) with architecture detection
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        KUBECTL_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        KUBECTL_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt) && \
+    curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${KUBECTL_ARCH}/kubectl" && \
     chmod +x kubectl && \
     mv kubectl /usr/local/bin/
 
-# Install k9s (latest)
-RUN K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') && \
-    curl -L "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" -o k9s.tar.gz && \
+# Install k9s (latest) with architecture detection
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        K9S_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        K9S_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') && \
+    curl -L "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_${K9S_ARCH}.tar.gz" -o k9s.tar.gz && \
     tar -xzf k9s.tar.gz && \
     chmod +x k9s && \
     mv k9s /usr/local/bin/ && \
     rm k9s.tar.gz
 
-# Install GitLab CLI (glab) - official API client
-RUN GLAB_VERSION=$(curl -s https://api.github.com/repos/profclems/glab/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') && \
-    curl -L "https://github.com/profclems/glab/releases/download/${GLAB_VERSION}/glab_${GLAB_VERSION#v}_Linux_x86_64.tar.gz" -o glab.tar.gz && \
+# Install GitLab CLI (glab) - official API client with architecture detection
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        GLAB_ARCH="x86_64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        GLAB_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    GLAB_VERSION=$(curl -s https://api.github.com/repos/profclems/glab/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') && \
+    curl -L "https://github.com/profclems/glab/releases/download/${GLAB_VERSION}/glab_${GLAB_VERSION#v}_Linux_${GLAB_ARCH}.tar.gz" -o glab.tar.gz && \
     tar -xzf glab.tar.gz && \
     chmod +x bin/glab && \
     mv bin/glab /usr/local/bin/ && \
@@ -40,15 +60,19 @@ RUN GLAB_VERSION=$(curl -s https://api.github.com/repos/profclems/glab/releases/
 # Final stage - minimal runtime image
 FROM node:20-alpine3.20
 
-# Install only essential runtime dependencies
+# Install only essential runtime dependencies with glibc support
 RUN apk update && apk add --no-cache \
     bash \
     ca-certificates \
+    libc6-compat \
+    python3 \
+    py3-pip \
     && rm -rf /var/cache/apk/*
 
-# Copy tools from builder stage
-COPY --from=builder /aws-cli-bin/aws /usr/local/bin/aws
-COPY --from=builder /aws-cli /usr/local/aws-cli
+# Install AWS CLI via pip (more Alpine-compatible)
+RUN pip3 install awscli --break-system-packages
+
+# Copy other tools from builder stage
 COPY --from=builder /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY --from=builder /usr/local/bin/k9s /usr/local/bin/k9s
 COPY --from=builder /usr/local/bin/glab /usr/local/bin/glab
@@ -66,9 +90,7 @@ RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@anthropic-ai/claude-c
     ln -sf /usr/local/bin/claude-wrapper /usr/local/bin/claude
 
 # Security hardening
-RUN chmod 755 /usr/local/bin/aws /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab && \
-    find /usr/local/aws-cli -type f -exec chmod 644 {} \; && \
-    find /usr/local/aws-cli -type d -exec chmod 755 {} \;
+RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab
 
 # Create directories with proper permissions
 RUN mkdir -p /home/claude/.claude /workspace && \
