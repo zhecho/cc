@@ -1,6 +1,14 @@
 # Multi-stage build for minimal final image
 FROM alpine:3.20 AS builder
 
+# Version arguments for static version management
+ARG KUBECTL_VERSION=v1.33.2
+ARG K9S_VERSION=v0.50.6
+ARG GLAB_VERSION=v1.22.0
+ARG TERRAFORM_VERSION=1.12.2
+ARG AWSCLI_VERSION=1.41.3
+ARG BOTO3_VERSION=1.39.3
+
 # Install build dependencies
 RUN apk update && apk add --no-cache \
     bash \
@@ -20,7 +28,6 @@ RUN ARCH=$(uname -m) && \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
-    KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt) && \
     curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${KUBECTL_ARCH}/kubectl" && \
     chmod +x kubectl && \
     mv kubectl /usr/local/bin/
@@ -34,7 +41,6 @@ RUN ARCH=$(uname -m) && \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
-    K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') && \
     curl -L "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_${K9S_ARCH}.tar.gz" -o k9s.tar.gz && \
     tar -xzf k9s.tar.gz && \
     chmod +x k9s && \
@@ -50,17 +56,23 @@ RUN ARCH=$(uname -m) && \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
-    GLAB_VERSION=$(curl -s https://api.github.com/repos/profclems/glab/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') && \
     curl -L "https://github.com/profclems/glab/releases/download/${GLAB_VERSION}/glab_${GLAB_VERSION#v}_Linux_${GLAB_ARCH}.tar.gz" -o glab.tar.gz && \
     tar -xzf glab.tar.gz && \
     chmod +x bin/glab && \
     mv bin/glab /usr/local/bin/ && \
     rm -rf glab.tar.gz bin/
 
+# Terraform will be installed in final stage
+
 # Final stage - minimal runtime image
 FROM node:20-alpine3.20
 
-# Install only essential runtime dependencies with glibc support
+# Version arguments for final stage
+ARG TERRAFORM_VERSION=1.12.2
+ARG AWSCLI_VERSION=1.41.3
+ARG BOTO3_VERSION=1.39.3
+
+# Install available packages from Alpine repositories
 RUN apk update && apk add --no-cache \
     bash \
     ca-certificates \
@@ -68,10 +80,39 @@ RUN apk update && apk add --no-cache \
     python3 \
     py3-pip \
     git \
+    curl \
+    jq \
+    yq \
+    binutils \
     && rm -rf /var/cache/apk/*
 
-# Install AWS CLI via pip (more Alpine-compatible)
-RUN pip3 install awscli --break-system-packages
+# Install container tools (podman and skopeo need special handling)
+RUN apk add --no-cache podman skopeo || echo "Container tools may not be available in this Alpine version"
+
+# Create virtual environment and install AWS CLI and boto3
+RUN python3 -m venv /opt/aws-venv && \
+    /opt/aws-venv/bin/pip install --upgrade pip && \
+    /opt/aws-venv/bin/pip install awscli boto3 && \
+    ln -sf /opt/aws-venv/bin/aws /usr/local/bin/aws
+
+# Create a wrapper script for python3 that includes AWS venv in path
+RUN printf '#!/bin/bash\nexport PYTHONPATH="/opt/aws-venv/lib/python3.12/site-packages:$PYTHONPATH"\nexec /usr/bin/python3 "$@"\n' > /usr/local/bin/python3-aws && \
+    chmod +x /usr/local/bin/python3-aws
+
+# Install Terraform in final stage
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        TF_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        TF_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    curl -L "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TF_ARCH}.zip" -o terraform.zip && \
+    unzip terraform.zip && \
+    chmod +x terraform && \
+    mv terraform /usr/local/bin/ && \
+    rm terraform.zip
 
 # Copy other tools from builder stage
 COPY --from=builder /usr/local/bin/kubectl /usr/local/bin/kubectl
@@ -91,7 +132,7 @@ RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@anthropic-ai/claude-c
     ln -sf /usr/local/bin/claude-wrapper /usr/local/bin/claude
 
 # Security hardening
-RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab
+RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/terraform
 
 # Create directories with proper permissions
 RUN mkdir -p /home/claude/.claude /workspace && \
