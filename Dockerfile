@@ -69,6 +69,7 @@ FROM node:20-alpine3.20
 
 # Version arguments for final stage
 ARG TERRAFORM_VERSION=1.12.2
+ARG TERRAFORM_VERSION_157=1.5.7
 ARG AWSCLI_VERSION=1.41.3
 ARG BOTO3_VERSION=1.39.3
 
@@ -99,7 +100,7 @@ RUN python3 -m venv /opt/aws-venv && \
 RUN printf '#!/bin/bash\nexport PYTHONPATH="/opt/aws-venv/lib/python3.12/site-packages:$PYTHONPATH"\nexec /usr/bin/python3 "$@"\n' > /usr/local/bin/python3-aws && \
     chmod +x /usr/local/bin/python3-aws
 
-# Install Terraform in final stage
+# Install tfswitch (terraform version switcher) and terraform versions
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
         TF_ARCH="amd64"; \
@@ -108,11 +109,22 @@ RUN ARCH=$(uname -m) && \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
-    curl -L "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TF_ARCH}.zip" -o terraform.zip && \
-    unzip terraform.zip && \
+    # Install tfswitch \
+    curl -L "https://raw.githubusercontent.com/warrensbox/terraform-switcher/master/install.sh" | bash && \
+    # Install terraform 1.12.2 (latest) \
+    curl -L "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TF_ARCH}.zip" -o terraform_latest.zip && \
+    unzip terraform_latest.zip && \
     chmod +x terraform && \
-    mv terraform /usr/local/bin/ && \
-    rm terraform.zip
+    mv terraform /usr/local/bin/terraform-1.12.2 && \
+    rm terraform_latest.zip && \
+    # Install terraform 1.5.7 \
+    curl -L "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION_157}/terraform_${TERRAFORM_VERSION_157}_linux_${TF_ARCH}.zip" -o terraform_157.zip && \
+    unzip terraform_157.zip && \
+    chmod +x terraform && \
+    mv terraform /usr/local/bin/terraform-1.5.7 && \
+    rm terraform_157.zip && \
+    # Set default terraform version (latest) \
+    ln -sf /usr/local/bin/terraform-1.12.2 /usr/local/bin/terraform
 
 # Copy other tools from builder stage
 COPY --from=builder /usr/local/bin/kubectl /usr/local/bin/kubectl
@@ -132,7 +144,7 @@ RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@anthropic-ai/claude-c
     ln -sf /usr/local/bin/claude-wrapper /usr/local/bin/claude
 
 # Security hardening
-RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/terraform
+RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/terraform /usr/local/bin/tfswitch
 
 # Create directories with proper permissions
 RUN mkdir -p /home/claude/.claude /workspace && \

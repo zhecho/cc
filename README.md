@@ -98,7 +98,55 @@ podman run --privileged --userns=keep-id --rm -it \
   -v ./.:/workspace \
   -v ~/.claude:/home/claude/.claude:Z \
   claude-code-secure:latest -c "glab issue list"
+
+# Use Terraform (default version 1.12.2)
+podman run --privileged --userns=keep-id --rm -it \
+  -v ./.:/workspace \
+  -v ~/.claude:/home/claude/.claude:Z \
+  claude-code-secure:latest -c "terraform version"
+
+# Use Terraform 1.5.7 directly
+podman run --privileged --userns=keep-id --rm -it \
+  -v ./.:/workspace \
+  -v ~/.claude:/home/claude/.claude:Z \
+  claude-code-secure:latest -c "terraform-1.5.7 version"
+
+# Use tfswitch (requires interactive session)
+podman run --privileged --userns=keep-id --rm -it \
+  -v ./.:/workspace \
+  -v ~/.claude:/home/claude/.claude:Z \
+  claude-code-secure:latest
+# Inside container: tfswitch 1.5.7
 ```
+
+## Terraform Version Management
+
+The container includes multiple Terraform versions and switching capabilities:
+
+### Available Versions
+- **terraform** (default): Points to Terraform 1.12.2
+- **terraform-1.5.7**: Direct access to Terraform 1.5.7
+- **tfswitch**: Official Terraform version switcher
+
+### Usage Examples
+```bash
+# Check current version
+terraform version
+
+# Use specific version directly
+terraform-1.5.7 version
+
+# Switch versions using tfswitch (interactive)
+tfswitch 1.5.7
+
+# List available versions
+tfswitch -l
+
+# Install and switch to latest
+tfswitch -u
+```
+
+**Note**: tfswitch requires write permissions to /usr/local/bin, so it works best in interactive sessions where you can manage the symlinks in your home directory.
 
 ## Volume Mounts
 
@@ -133,11 +181,20 @@ podman run --privileged --userns=keep-id --rm -it \
 | Tool | Version | Purpose |
 |------|---------|---------|
 | Claude Code CLI | Latest | AI-powered development assistant |
-| AWS CLI v1 | Latest | Amazon Web Services command-line interface |
-| kubectl | Latest stable | Kubernetes command-line tool |
-| k9s | Latest | Kubernetes cluster management UI |
-| glab | Latest | Official GitLab CLI API client |
+| AWS CLI v1 | 1.41.3 | Amazon Web Services command-line interface |
+| kubectl | v1.33.2 | Kubernetes command-line tool |
+| k9s | v0.50.6 | Kubernetes cluster management UI |
+| glab | v1.22.0 | Official GitLab CLI API client |
 | git | Latest | Distributed version control system |
+| terraform | 1.12.2 (default) | Infrastructure as Code tool |
+| terraform-1.5.7 | 1.5.7 | Alternative Terraform version |
+| tfswitch | v1.4.6 | Terraform version switcher |
+| jq | Latest | JSON processor |
+| yq | Latest | YAML processor |
+| curl | Latest | HTTP client |
+| binutils | Latest | Binary utilities |
+| podman | Latest | Container runtime |
+| skopeo | Latest | Container image inspector |
 
 ## Security Features
 
