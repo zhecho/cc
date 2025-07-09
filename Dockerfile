@@ -67,6 +67,7 @@ RUN apk update && apk add --no-cache \
     libc6-compat \
     python3 \
     py3-pip \
+    git \
     && rm -rf /var/cache/apk/*
 
 # Install AWS CLI via pip (more Alpine-compatible)

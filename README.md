@@ -5,10 +5,11 @@ A secure, minimal containerized version of Claude Code CLI with the latest cloud
 ## Features
 
 - **Latest Cloud & DevOps Tools:**
-  - AWS CLI v2 (latest) - Full AWS API client
+  - AWS CLI v1 (latest) - Amazon Web Services command-line interface
   - kubectl (latest stable) - Kubernetes command-line tool
   - k9s (latest) - Kubernetes cluster management UI
   - glab (latest) - Official GitLab CLI API client
+  - git (latest) - Distributed version control system
   - Claude Code CLI - AI-powered development assistant
 
 - **Security & Optimization:**
@@ -56,6 +57,11 @@ k9s version
 # GitLab CLI
 glab version
 glab auth login
+
+# Git client
+git --version
+git status
+git clone <repository>
 ```
 
 ### Usage Examples
@@ -127,10 +133,11 @@ podman run --privileged --userns=keep-id --rm -it \
 | Tool | Version | Purpose |
 |------|---------|---------|
 | Claude Code CLI | Latest | AI-powered development assistant |
-| AWS CLI v2 | Latest | Amazon Web Services command-line interface |
+| AWS CLI v1 | Latest | Amazon Web Services command-line interface |
 | kubectl | Latest stable | Kubernetes command-line tool |
 | k9s | Latest | Kubernetes cluster management UI |
 | glab | Latest | Official GitLab CLI API client |
+| git | Latest | Distributed version control system |
 
 ## Security Features
 
