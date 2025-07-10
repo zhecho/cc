@@ -1,5 +1,5 @@
 # Multi-stage build for minimal final image
-FROM alpine:3.20 AS builder
+FROM alpine:3.22 AS builder
 
 # Version arguments for static version management
 ARG KUBECTL_VERSION=v1.33.2
@@ -65,7 +65,7 @@ RUN ARCH=$(uname -m) && \
 # Terraform will be installed in final stage
 
 # Final stage - minimal runtime image
-FROM node:20-alpine3.20
+FROM node:20-alpine3.22
 
 # Version arguments for final stage
 ARG TERRAFORM_VERSION=1.12.2

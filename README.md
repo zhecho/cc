@@ -13,8 +13,8 @@ A secure, minimal containerized version of Claude Code CLI with the latest cloud
   - Claude Code CLI - AI-powered development assistant
 
 - **Security & Optimization:**
-  - Multi-stage build for minimal image size (927 MB)
-  - Alpine Linux 3.20 base for security and size
+  - Multi-stage build for minimal image size 
+  - Alpine Linux 3.22 base for security and size
   - Non-root user (UID 1000) for security
   - Proper file permissions and security hardening
   - Minimal runtime dependencies
@@ -200,7 +200,7 @@ podman run --privileged --userns=keep-id --rm -it \
 
 - **Multi-stage build** reduces final image size and attack surface
 - **Non-root user** (UID 1000) for secure container execution
-- **Minimal base image** (Alpine Linux 3.20) for security
+- **Minimal base image** (Alpine Linux 3.22) for security
 - **Proper file permissions** (755 for binaries, 644 for files)
 - **Clean package management** with cache removal
 - **Security hardening** applied to all installed tools
