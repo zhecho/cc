@@ -14,7 +14,7 @@ A secure, minimal containerized version of Claude Code CLI with the latest cloud
 
 - **Security & Optimization:**
   - Multi-stage build for minimal image size 
-  - Alpine Linux 3.22 base for security and size
+  - Chainguard Images (Wolfi Linux) base for maximum security and glibc compatibility
   - Non-root user (UID 1000) for security
   - Proper file permissions and security hardening
   - Minimal runtime dependencies
@@ -181,26 +181,30 @@ podman run --privileged --userns=keep-id --rm -it \
 | Tool | Version | Purpose |
 |------|---------|---------|
 | Claude Code CLI | Latest | AI-powered development assistant |
-| AWS CLI v1 | 1.41.3 | Amazon Web Services command-line interface |
+| AWS CLI v2 | 2.27.50 | Amazon Web Services command-line interface |
 | kubectl | v1.33.2 | Kubernetes command-line tool |
 | k9s | v0.50.6 | Kubernetes cluster management UI |
 | glab | v1.22.0 | Official GitLab CLI API client |
-| git | Latest | Distributed version control system |
+| git | 2.50.1 | Distributed version control system |
 | terraform | 1.12.2 (default) | Infrastructure as Code tool |
 | terraform-1.5.7 | 1.5.7 | Alternative Terraform version |
 | tfswitch | v1.4.6 | Terraform version switcher |
-| jq | Latest | JSON processor |
-| yq | Latest | YAML processor |
+| boto3 | 1.39.4 | AWS SDK for Python |
+| Node.js | 24.4.0 | JavaScript runtime |
+| npm | 11.4.2 | Node.js package manager |
+| jq | 1.8.1 | JSON processor |
+| yq | 4.46.1 | YAML processor |
 | curl | Latest | HTTP client |
 | binutils | Latest | Binary utilities |
-| podman | Latest | Container runtime |
-| skopeo | Latest | Container image inspector |
+| podman | 5.5.2 | Container runtime |
+| skopeo | 1.19.0 | Container image inspector |
 
 ## Security Features
 
 - **Multi-stage build** reduces final image size and attack surface
 - **Non-root user** (UID 1000) for secure container execution
-- **Minimal base image** (Alpine Linux 3.22) for security
+- **Chainguard Images** (Wolfi Linux) for maximum security and zero-CVE target
+- **glibc compatibility** enables AWS CLI v2 and modern tooling
 - **Proper file permissions** (755 for binaries, 644 for files)
 - **Clean package management** with cache removal
 - **Security hardening** applied to all installed tools

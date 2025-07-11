@@ -1,5 +1,5 @@
 # Multi-stage build for minimal final image
-FROM alpine:3.22 AS builder
+FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 
 # Version arguments for static version management
 ARG KUBECTL_VERSION=v1.33.2
@@ -14,8 +14,11 @@ RUN apk update && apk add --no-cache \
     bash \
     curl \
     unzip \
-    tar \
+    gnutar \
     ca-certificates
+
+# Create tar symlink
+RUN ln -sf $(which gnutar) /usr/bin/tar
 
 # AWS CLI will be installed via pip in final stage
 
@@ -30,7 +33,8 @@ RUN ARCH=$(uname -m) && \
     fi && \
     curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${KUBECTL_ARCH}/kubectl" && \
     chmod +x kubectl && \
-    mv kubectl /usr/local/bin/
+    mkdir -p /usr/local/bin && \
+    mv kubectl /usr/local/bin/kubectl
 
 # Install k9s (latest) with architecture detection
 RUN ARCH=$(uname -m) && \
@@ -65,19 +69,18 @@ RUN ARCH=$(uname -m) && \
 # Terraform will be installed in final stage
 
 # Final stage - minimal runtime image
-FROM node:20-alpine3.22
+FROM cgr.dev/chainguard/wolfi-base:latest
 
 # Version arguments for final stage
 ARG TERRAFORM_VERSION=1.12.2
 ARG TERRAFORM_VERSION_157=1.5.7
-ARG AWSCLI_VERSION=1.41.3
-ARG BOTO3_VERSION=1.39.3
+ARG AWSCLI_VERSION=2.27.49
+ARG BOTO3_VERSION=1.39.4
 
-# Install available packages from Alpine repositories
+# Install available packages from Chainguard repositories
 RUN apk update && apk add --no-cache \
     bash \
     ca-certificates \
-    libc6-compat \
     python3 \
     py3-pip \
     git \
@@ -85,16 +88,32 @@ RUN apk update && apk add --no-cache \
     jq \
     yq \
     binutils \
+    unzip \
+    nodejs \
+    npm \
     && rm -rf /var/cache/apk/*
 
 # Install container tools (podman and skopeo need special handling)
-RUN apk add --no-cache podman skopeo || echo "Container tools may not be available in this Alpine version"
+RUN apk add --no-cache podman skopeo || echo "Container tools may not be available in this Chainguard version"
 
-# Create virtual environment and install AWS CLI and boto3
-RUN python3 -m venv /opt/aws-venv && \
+# Install AWS CLI v2 using official installer and create virtual environment for boto3
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        AWS_ARCH="x86_64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        AWS_ARCH="aarch64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    # Install AWS CLI v2 using official installer \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli && \
+    rm -rf awscliv2.zip aws && \
+    # Create virtual environment for boto3 \
+    python3 -m venv /opt/aws-venv && \
     /opt/aws-venv/bin/pip install --upgrade pip && \
-    /opt/aws-venv/bin/pip install awscli boto3 && \
-    ln -sf /opt/aws-venv/bin/aws /usr/local/bin/aws
+    /opt/aws-venv/bin/pip install boto3==${BOTO3_VERSION}
 
 # Create a wrapper script for python3 that includes AWS venv in path
 RUN printf '#!/bin/bash\nexport PYTHONPATH="/opt/aws-venv/lib/python3.12/site-packages:$PYTHONPATH"\nexec /usr/bin/python3 "$@"\n' > /usr/local/bin/python3-aws && \
