@@ -8,6 +8,7 @@ ARG GLAB_VERSION=v1.22.0
 ARG TERRAFORM_VERSION=1.12.2
 ARG AWSCLI_VERSION=1.41.3
 ARG BOTO3_VERSION=1.39.3
+ARG OPENSSL_VERSION=3.5.1
 
 # Install build dependencies
 RUN apk update && apk add --no-cache \
@@ -76,6 +77,7 @@ ARG TERRAFORM_VERSION=1.12.2
 ARG TERRAFORM_VERSION_157=1.5.7
 ARG AWSCLI_VERSION=2.27.49
 ARG BOTO3_VERSION=1.39.4
+ARG OPENSSL_VERSION=3.5.1
 
 # Install available packages from Chainguard repositories
 RUN apk update && apk add --no-cache \
@@ -91,6 +93,9 @@ RUN apk update && apk add --no-cache \
     unzip \
     nodejs \
     npm \
+    openssl \
+    netcat-openbsd \
+    ssldump \
     && rm -rf /var/cache/apk/*
 
 # Install container tools (podman and skopeo need special handling)
