@@ -95,6 +95,8 @@ RUN apk update && apk add --no-cache \
     npm \
     openssl \
     netcat-openbsd \
+    cpio \
+    rpm \
     && rm -rf /var/cache/apk/*
 
 # Install container tools (podman and skopeo need special handling)
@@ -104,8 +106,10 @@ RUN apk add --no-cache podman skopeo || echo "Container tools may not be availab
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
         AWS_ARCH="x86_64"; \
+        SESSION_MANAGER_ARCH="64bit"; \
     elif [ "$ARCH" = "aarch64" ]; then \
         AWS_ARCH="aarch64"; \
+        SESSION_MANAGER_ARCH="arm64"; \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
@@ -114,6 +118,18 @@ RUN ARCH=$(uname -m) && \
     unzip awscliv2.zip && \
     ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli && \
     rm -rf awscliv2.zip aws && \
+    # Install AWS Session Manager Plugin \
+    curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_${SESSION_MANAGER_ARCH}/session-manager-plugin.rpm" -o "session-manager-plugin.rpm" && \
+    # Extract RPM manually since we don't have rpm command in Chainguard \
+    (cd /tmp && \
+     rpm2cpio /session-manager-plugin.rpm | cpio -idmv && \
+     cp usr/local/sessionmanagerplugin/bin/session-manager-plugin /usr/local/bin/ && \
+     chmod +x /usr/local/bin/session-manager-plugin) || \
+    # Fallback: try direct binary download if rpm method fails \
+    (curl "https://s3.amazonaws.com/session-manager-downloads/plugin/latest/linux_${SESSION_MANAGER_ARCH}/session-manager-plugin" -o "/usr/local/bin/session-manager-plugin" && \
+     chmod +x /usr/local/bin/session-manager-plugin) && \
+    rm -f session-manager-plugin.rpm && \
+    rm -rf /tmp/usr && \
     # Create virtual environment for boto3 \
     python3 -m venv /opt/aws-venv && \
     /opt/aws-venv/bin/pip install --upgrade pip && \

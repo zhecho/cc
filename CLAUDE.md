@@ -83,6 +83,7 @@ Version arguments are centralized at the top of the Dockerfile:
 The container includes these pre-installed tools:
 - **Claude Code CLI**: AI-powered development assistant
 - **AWS CLI v2**: Amazon Web Services command-line interface
+- **AWS Session Manager Plugin**: Enables SSM-based EC2 instance access via `aws ssm start-session`
 - **kubectl**: Kubernetes command-line tool
 - **k9s**: Kubernetes cluster management UI
 - **glab**: Official GitLab CLI API client
@@ -143,3 +144,7 @@ The container runs with:
 - `SHELL=/bin/bash`: Default shell
 - `PYTHONPATH` includes AWS virtual environment for boto3 access
 - Working directory set to `/workspace`
+
+## Development Memories
+
+- I expect after adding some new package in the image to build it with podman and push it to git in order pipeline to create new container image
