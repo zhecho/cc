@@ -95,7 +95,6 @@ RUN apk update && apk add --no-cache \
     npm \
     openssl \
     netcat-openbsd \
-    ssldump \
     && rm -rf /var/cache/apk/*
 
 # Install container tools (podman and skopeo need special handling)
