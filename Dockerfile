@@ -142,8 +142,20 @@ RUN ARCH=$(uname -m) && \
 RUN printf '#!/bin/bash\nexport PYTHONPATH="/opt/aws-venv/lib/python3.12/site-packages:$PYTHONPATH"\nexec /usr/bin/python3 "$@"\n' > /usr/local/bin/python3-aws && \
     chmod +x /usr/local/bin/python3-aws
 
-# Install Helm using the official installer script
-RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | HELM_INSTALL_DIR=/usr/local/bin bash
+# Install Helm manually with architecture detection
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        HELM_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        HELM_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    curl -L "https://get.helm.sh/helm-v3.18.4-linux-${HELM_ARCH}.tar.gz" -o helm.tar.gz && \
+    tar -xzf helm.tar.gz && \
+    chmod +x linux-${HELM_ARCH}/helm && \
+    mv linux-${HELM_ARCH}/helm /usr/local/bin/ && \
+    rm -rf helm.tar.gz linux-${HELM_ARCH}/
 
 # Install tfswitch (terraform version switcher) and terraform versions
 RUN ARCH=$(uname -m) && \
