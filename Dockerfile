@@ -5,6 +5,7 @@ FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 ARG KUBECTL_VERSION=v1.33.2
 ARG K9S_VERSION=v0.50.6
 ARG GLAB_VERSION=v1.22.0
+ARG HELM_VERSION=v3.18.4
 ARG TERRAFORM_VERSION=1.12.2
 ARG AWSCLI_VERSION=1.41.3
 ARG BOTO3_VERSION=1.39.3
@@ -66,6 +67,8 @@ RUN ARCH=$(uname -m) && \
     chmod +x bin/glab && \
     mv bin/glab /usr/local/bin/ && \
     rm -rf glab.tar.gz bin/
+
+# Helm will be installed in final stage
 
 # Terraform will be installed in final stage
 
@@ -139,6 +142,9 @@ RUN ARCH=$(uname -m) && \
 RUN printf '#!/bin/bash\nexport PYTHONPATH="/opt/aws-venv/lib/python3.12/site-packages:$PYTHONPATH"\nexec /usr/bin/python3 "$@"\n' > /usr/local/bin/python3-aws && \
     chmod +x /usr/local/bin/python3-aws
 
+# Install Helm using the official installer script
+RUN curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | HELM_INSTALL_DIR=/usr/local/bin bash
+
 # Install tfswitch (terraform version switcher) and terraform versions
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
@@ -191,7 +197,7 @@ RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@google/gemini-cli/cli
     ln -sf /usr/local/bin/gemini-wrapper /usr/local/bin/gemini
 
 # Security hardening
-RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/terraform /usr/local/bin/tfswitch
+RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/helm /usr/local/bin/terraform /usr/local/bin/tfswitch
 
 # Create directories with proper permissions
 RUN mkdir -p /home/claude/.claude /home/claude/.gemini /workspace && \
