@@ -6,6 +6,7 @@ ARG KUBECTL_VERSION=v1.33.2
 ARG K9S_VERSION=v0.50.6
 ARG GLAB_VERSION=v1.22.0
 ARG HELM_VERSION=v3.18.4
+ARG ARGO_VERSION=v3.7.0
 ARG TERRAFORM_VERSION=1.12.2
 ARG AWSCLI_VERSION=1.41.3
 ARG BOTO3_VERSION=1.39.3
@@ -68,6 +69,8 @@ RUN ARCH=$(uname -m) && \
     mv bin/glab /usr/local/bin/ && \
     rm -rf glab.tar.gz bin/
 
+# Argo CLI will be installed in final stage
+
 # Helm will be installed in final stage
 
 # Terraform will be installed in final stage
@@ -78,6 +81,7 @@ FROM cgr.dev/chainguard/wolfi-base:latest
 # Version arguments for final stage
 ARG TERRAFORM_VERSION=1.12.2
 ARG TERRAFORM_VERSION_157=1.5.7
+ARG ARGO_VERSION=v3.7.0
 ARG AWSCLI_VERSION=2.27.49
 ARG BOTO3_VERSION=1.39.4
 ARG OPENSSL_VERSION=3.5.1
@@ -157,6 +161,21 @@ RUN ARCH=$(uname -m) && \
     mv linux-${HELM_ARCH}/helm /usr/local/bin/ && \
     rm -rf helm.tar.gz linux-${HELM_ARCH}/
 
+# Install Argo CLI with architecture detection
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        ARGO_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        ARGO_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    curl -L "https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-${ARGO_ARCH}.gz" -o argo.gz && \
+    gunzip argo.gz && \
+    chmod +x argo && \
+    mv argo /usr/local/bin/ && \
+    rm -f argo.gz
+
 # Install tfswitch (terraform version switcher) and terraform versions
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
@@ -209,7 +228,7 @@ RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@google/gemini-cli/cli
     ln -sf /usr/local/bin/gemini-wrapper /usr/local/bin/gemini
 
 # Security hardening
-RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/helm /usr/local/bin/terraform /usr/local/bin/tfswitch
+RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/argo /usr/local/bin/helm /usr/local/bin/terraform /usr/local/bin/tfswitch
 
 # Create directories with proper permissions
 RUN mkdir -p /home/claude/.claude /home/claude/.gemini /workspace && \

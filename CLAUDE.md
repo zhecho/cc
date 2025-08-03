@@ -148,3 +148,5 @@ The container runs with:
 ## Development Memories
 
 - I expect after adding some new package in the image to build it with podman and push it to git in order pipeline to create new container image
+- Execute all git commands as a oneliner i.e. commit push tag if there is tag 
+- If you add some package and need curl | wget download just try to download locally first and then continue with build
