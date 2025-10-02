@@ -2,14 +2,14 @@
 FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 
 # Version arguments for static version management
-ARG KUBECTL_VERSION=v1.33.2
-ARG K9S_VERSION=v0.50.6
+ARG KUBECTL_VERSION=v1.34.0
+ARG K9S_VERSION=v0.50.12
 ARG GLAB_VERSION=v1.22.0
-ARG HELM_VERSION=v3.18.4
-ARG ARGO_VERSION=v3.7.0
-ARG TERRAFORM_VERSION=1.12.2
-ARG AWSCLI_VERSION=1.41.3
-ARG BOTO3_VERSION=1.39.3
+ARG HELM_VERSION=v3.18.5
+ARG ARGO_VERSION=v3.7.2
+ARG TERRAFORM_VERSION=1.13.3
+ARG AWSCLI_VERSION=2.28.5
+ARG BOTO3_VERSION=1.40.26
 ARG OPENSSL_VERSION=3.5.1
 
 # Install build dependencies
@@ -79,11 +79,11 @@ RUN ARCH=$(uname -m) && \
 FROM cgr.dev/chainguard/wolfi-base:latest
 
 # Version arguments for final stage
-ARG TERRAFORM_VERSION=1.12.2
+ARG TERRAFORM_VERSION=1.13.3
 ARG TERRAFORM_VERSION_157=1.5.7
-ARG ARGO_VERSION=v3.7.0
-ARG AWSCLI_VERSION=2.27.49
-ARG BOTO3_VERSION=1.39.4
+ARG ARGO_VERSION=v3.7.2
+ARG AWSCLI_VERSION=2.28.5
+ARG BOTO3_VERSION=1.40.26
 ARG OPENSSL_VERSION=3.5.1
 
 # Install available packages from Chainguard repositories
@@ -155,7 +155,7 @@ RUN ARCH=$(uname -m) && \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
-    curl -L "https://get.helm.sh/helm-v3.18.4-linux-${HELM_ARCH}.tar.gz" -o helm.tar.gz && \
+    curl -L "https://get.helm.sh/helm-v3.18.5-linux-${HELM_ARCH}.tar.gz" -o helm.tar.gz && \
     tar -xzf helm.tar.gz && \
     chmod +x linux-${HELM_ARCH}/helm && \
     mv linux-${HELM_ARCH}/helm /usr/local/bin/ && \
@@ -187,11 +187,11 @@ RUN ARCH=$(uname -m) && \
     fi && \
     # Install tfswitch \
     curl -L "https://raw.githubusercontent.com/warrensbox/terraform-switcher/master/install.sh" | bash && \
-    # Install terraform 1.12.2 (latest) \
+    # Install terraform 1.13.3 (latest) \
     curl -L "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TF_ARCH}.zip" -o terraform_latest.zip && \
     unzip terraform_latest.zip && \
     chmod +x terraform && \
-    mv terraform /usr/local/bin/terraform-1.12.2 && \
+    mv terraform /usr/local/bin/terraform-1.13.3 && \
     rm terraform_latest.zip && \
     # Install terraform 1.5.7 \
     curl -L "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION_157}/terraform_${TERRAFORM_VERSION_157}_linux_${TF_ARCH}.zip" -o terraform_157.zip && \
@@ -200,7 +200,7 @@ RUN ARCH=$(uname -m) && \
     mv terraform /usr/local/bin/terraform-1.5.7 && \
     rm terraform_157.zip && \
     # Set default terraform version (latest) \
-    ln -sf /usr/local/bin/terraform-1.12.2 /usr/local/bin/terraform
+    ln -sf /usr/local/bin/terraform-1.13.3 /usr/local/bin/terraform
 
 # Copy other tools from builder stage
 COPY --from=builder /usr/local/bin/kubectl /usr/local/bin/kubectl
