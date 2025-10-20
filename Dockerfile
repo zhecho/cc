@@ -99,7 +99,7 @@ RUN apk update && apk add --no-cache \
     yq \
     binutils \
     unzip \
-    nodejs \
+    nodejs-24 \
     npm \
     openssl \
     netcat-openbsd \
