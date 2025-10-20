@@ -70,13 +70,15 @@ The Dockerfile uses a multi-stage build pattern:
 
 ### Tool Versions
 Version arguments are centralized at the top of the Dockerfile:
-- `KUBECTL_VERSION`: Kubernetes CLI version
-- `K9S_VERSION`: Kubernetes cluster management UI version
-- `GLAB_VERSION`: GitLab CLI version
-- `TERRAFORM_VERSION`: Default Terraform version (1.12.2)
+- `KUBECTL_VERSION`: Kubernetes CLI version (v1.34.1)
+- `K9S_VERSION`: Kubernetes cluster management UI version (v0.50.16)
+- `GLAB_VERSION`: GitLab CLI version (v1.74.0)
+- `HELM_VERSION`: Kubernetes package manager (v3.19.0)
+- `ARGO_VERSION`: Argo Workflows CLI (v3.7.3)
+- `TERRAFORM_VERSION`: Default Terraform version (1.13.4)
 - `TERRAFORM_VERSION_157`: Alternative Terraform version (1.5.7)
-- `AWSCLI_VERSION`: AWS CLI v2 version
-- `BOTO3_VERSION`: AWS SDK for Python version
+- `AWSCLI_VERSION`: AWS CLI v2 version (2.31.18)
+- `BOTO3_VERSION`: AWS SDK for Python version (1.40.55)
 
 ## Installed Tools
 
@@ -98,7 +100,7 @@ The container includes these pre-installed tools:
 ## Terraform Version Management
 
 The container includes multiple Terraform versions:
-- `terraform` (default): Points to Terraform 1.12.2
+- `terraform` (default): Points to Terraform 1.13.4
 - `terraform-1.5.7`: Direct access to Terraform 1.5.7
 - `tfswitch`: Switch between versions interactively
 
