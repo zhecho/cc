@@ -11,6 +11,7 @@ ARG TERRAFORM_VERSION=1.13.4
 ARG AWSCLI_VERSION=2.31.18
 ARG BOTO3_VERSION=1.40.55
 ARG OPENSSL_VERSION=3.5.1
+ARG CRUSH_VERSION=0.12.0
 
 # Install build dependencies
 RUN apk update && apk add --no-cache \
@@ -71,6 +72,7 @@ RUN ARCH=$(uname -m) && \
     rm -rf glab.tar.gz bin/
 
 # Argo CLI will be installed in final stage
+# Crush CLI will be installed in final stage
 
 # Helm will be installed in final stage
 
@@ -86,6 +88,7 @@ ARG ARGO_VERSION=v3.7.3
 ARG AWSCLI_VERSION=2.31.18
 ARG BOTO3_VERSION=1.40.55
 ARG OPENSSL_VERSION=3.5.1
+ARG CRUSH_VERSION=0.12.0
 
 # Install available packages from Chainguard repositories
 RUN apk update && apk add --no-cache \
@@ -177,6 +180,21 @@ RUN ARCH=$(uname -m) && \
     mv argo /usr/local/bin/ && \
     rm -f argo.gz
 
+# Install Crush CLI (Charmbracelet's AI coding agent) with architecture detection
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        CRUSH_ARCH="x86_64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        CRUSH_ARCH="arm64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    curl -L "https://github.com/charmbracelet/crush/releases/download/v${CRUSH_VERSION}/crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}.tar.gz" -o crush.tar.gz && \
+    tar -xzf crush.tar.gz && \
+    chmod +x crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}/crush && \
+    mv crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}/crush /usr/local/bin/ && \
+    rm -rf crush.tar.gz crush_${CRUSH_VERSION}_Linux_${CRUSH_ARCH}
+
 # Install tfswitch (terraform version switcher) and terraform versions
 RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then \
@@ -234,7 +252,7 @@ RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@google/gemini-cli/cli
     ln -sf /usr/local/bin/gemini-wrapper /usr/local/bin/gemini
 
 # Security hardening
-RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/argo /usr/local/bin/helm /usr/local/bin/terraform /usr/local/bin/tfswitch
+RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/crush /usr/local/bin/argo /usr/local/bin/helm /usr/local/bin/terraform /usr/local/bin/tfswitch
 
 # Create directories with proper permissions
 RUN mkdir -p /home/claude/.claude /home/claude/.gemini /workspace && \
