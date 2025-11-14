@@ -1,0 +1,117 @@
+stages:
+  - build
+  - manifest
+
+variables:
+  KANIKO_IMAGE: gcr.io/kaniko-project/executor:v1.23.2-debug
+  IMAGE_NAME: ${CI_REGISTRY_IMAGE}
+  CACHE_REPO: ${CI_REGISTRY_IMAGE}/cache
+
+# Build AMD64 image
+build:amd64:
+  stage: build
+  image:
+    name: $KANIKO_IMAGE
+    entrypoint: [""]
+  script:
+    - |
+      # Prepare Kaniko config for GitLab registry authentication
+      mkdir -p /kaniko/.docker
+      echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+
+      # Build and push AMD64 image
+      /kaniko/executor \
+        --context "${CI_PROJECT_DIR}" \
+        --dockerfile "${CI_PROJECT_DIR}/Dockerfile" \
+        --destination "${IMAGE_NAME}:${CI_COMMIT_SHA}-amd64" \
+        --destination "${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-amd64" \
+        --custom-platform=linux/amd64 \
+        --cache=true \
+        --cache-repo="${CACHE_REPO}" \
+        --snapshot-mode=redo \
+        --use-new-run
+  tags:
+    - docker
+  only:
+    - branches
+    - tags
+
+# Build ARM64 image
+build:arm64:
+  stage: build
+  image:
+    name: $KANIKO_IMAGE
+    entrypoint: [""]
+  script:
+    - |
+      # Prepare Kaniko config for GitLab registry authentication
+      mkdir -p /kaniko/.docker
+      echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+
+      # Build and push ARM64 image
+      /kaniko/executor \
+        --context "${CI_PROJECT_DIR}" \
+        --dockerfile "${CI_PROJECT_DIR}/Dockerfile" \
+        --destination "${IMAGE_NAME}:${CI_COMMIT_SHA}-arm64" \
+        --destination "${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-arm64" \
+        --custom-platform=linux/arm64 \
+        --cache=true \
+        --cache-repo="${CACHE_REPO}" \
+        --snapshot-mode=redo \
+        --use-new-run
+  tags:
+    - docker
+  only:
+    - branches
+    - tags
+
+# Create multi-arch manifest
+manifest:
+  stage: manifest
+  image: mplatform/manifest-tool:alpine
+  script:
+    - |
+      # Login to registry
+      echo "${CI_REGISTRY_PASSWORD}" | manifest-tool login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
+
+      # Create manifest for commit SHA
+      manifest-tool push from-args \
+        --platforms linux/amd64,linux/arm64 \
+        --template "${IMAGE_NAME}:${CI_COMMIT_SHA}-ARCH" \
+        --target "${IMAGE_NAME}:${CI_COMMIT_SHA}"
+
+      # Create manifest for branch/tag
+      manifest-tool push from-args \
+        --platforms linux/amd64,linux/arm64 \
+        --template "${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-ARCH" \
+        --target "${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}"
+  tags:
+    - docker
+  dependencies:
+    - build:amd64
+    - build:arm64
+  only:
+    - branches
+    - tags
+
+# Create latest tag for main branch
+manifest:latest:
+  stage: manifest
+  image: mplatform/manifest-tool:alpine
+  script:
+    - |
+      # Login to registry
+      echo "${CI_REGISTRY_PASSWORD}" | manifest-tool login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
+
+      # Create manifest for latest
+      manifest-tool push from-args \
+        --platforms linux/amd64,linux/arm64 \
+        --template "${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-ARCH" \
+        --target "${IMAGE_NAME}:latest"
+  tags:
+    - docker
+  dependencies:
+    - build:amd64
+    - build:arm64
+  only:
+    - main
