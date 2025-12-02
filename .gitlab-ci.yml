@@ -3,35 +3,34 @@ stages:
   - manifest
 
 variables:
-  KANIKO_IMAGE: gcr.io/kaniko-project/executor:v1.23.2-debug
   IMAGE_NAME: ${CI_REGISTRY_IMAGE}
-  CACHE_REPO: ${CI_REGISTRY_IMAGE}/cache
 
 # Build AMD64 image
 build:amd64:
   stage: build
-  image:
-    name: $KANIKO_IMAGE
-    entrypoint: [""]
+  image: quay.io/buildah/stable:latest
   script:
     - |
-      # Prepare Kaniko config for GitLab registry authentication
-      mkdir -p /kaniko/.docker
-      echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+      # Login to GitLab container registry
+      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
 
-      # Build and push AMD64 image
-      /kaniko/executor \
-        --context "${CI_PROJECT_DIR}" \
-        --dockerfile "${CI_PROJECT_DIR}/Dockerfile" \
-        --destination "${IMAGE_NAME}:${CI_COMMIT_SHA}-amd64" \
-        --destination "${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-amd64" \
-        --custom-platform=linux/amd64 \
-        --cache=true \
-        --cache-repo="${CACHE_REPO}" \
-        --snapshot-mode=redo \
-        --use-new-run
+      # Pull previous image for layer caching
+      buildah --storage-driver=overlay pull ${IMAGE_NAME}:latest || true
+
+      # Build AMD64 image with caching
+      buildah --storage-driver=overlay bud \
+        --arch amd64 \
+        --layers \
+        --cache-from ${IMAGE_NAME}:latest \
+        -t ${IMAGE_NAME}:${CI_COMMIT_SHA}-amd64 \
+        -t ${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-amd64 \
+        -f Dockerfile .
+
+      # Push images
+      buildah --storage-driver=overlay push ${IMAGE_NAME}:${CI_COMMIT_SHA}-amd64
+      buildah --storage-driver=overlay push ${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-amd64
   tags:
-    - docker
+    - kubernetes
   only:
     - branches
     - tags
@@ -39,54 +38,55 @@ build:amd64:
 # Build ARM64 image
 build:arm64:
   stage: build
-  image:
-    name: $KANIKO_IMAGE
-    entrypoint: [""]
+  image: quay.io/buildah/stable:latest
   script:
     - |
-      # Prepare Kaniko config for GitLab registry authentication
-      mkdir -p /kaniko/.docker
-      echo "{\"auths\":{\"$CI_REGISTRY\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+      # Login to GitLab container registry
+      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
 
-      # Build and push ARM64 image
-      /kaniko/executor \
-        --context "${CI_PROJECT_DIR}" \
-        --dockerfile "${CI_PROJECT_DIR}/Dockerfile" \
-        --destination "${IMAGE_NAME}:${CI_COMMIT_SHA}-arm64" \
-        --destination "${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-arm64" \
-        --custom-platform=linux/arm64 \
-        --cache=true \
-        --cache-repo="${CACHE_REPO}" \
-        --snapshot-mode=redo \
-        --use-new-run
+      # Pull previous image for layer caching
+      buildah --storage-driver=overlay pull ${IMAGE_NAME}:latest || true
+
+      # Build ARM64 image with caching
+      buildah --storage-driver=overlay bud \
+        --arch arm64 \
+        --layers \
+        --cache-from ${IMAGE_NAME}:latest \
+        -t ${IMAGE_NAME}:${CI_COMMIT_SHA}-arm64 \
+        -t ${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-arm64 \
+        -f Dockerfile .
+
+      # Push images
+      buildah --storage-driver=overlay push ${IMAGE_NAME}:${CI_COMMIT_SHA}-arm64
+      buildah --storage-driver=overlay push ${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-arm64
   tags:
-    - docker
+    - kubernetes
   only:
     - branches
     - tags
 
-# Create multi-arch manifest
+# Create multi-arch manifest for commit SHA and branch/tag
 manifest:
   stage: manifest
-  image: mplatform/manifest-tool:alpine
+  image: quay.io/buildah/stable:latest
   script:
     - |
       # Login to registry
-      echo "${CI_REGISTRY_PASSWORD}" | manifest-tool login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
+      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
 
-      # Create manifest for commit SHA
-      manifest-tool push from-args \
-        --platforms linux/amd64,linux/arm64 \
-        --template "${IMAGE_NAME}:${CI_COMMIT_SHA}-ARCH" \
-        --target "${IMAGE_NAME}:${CI_COMMIT_SHA}"
+      # Create and push manifest for commit SHA
+      buildah --storage-driver=overlay manifest create ${IMAGE_NAME}:${CI_COMMIT_SHA}
+      buildah --storage-driver=overlay manifest add ${IMAGE_NAME}:${CI_COMMIT_SHA} docker://${IMAGE_NAME}:${CI_COMMIT_SHA}-amd64
+      buildah --storage-driver=overlay manifest add ${IMAGE_NAME}:${CI_COMMIT_SHA} docker://${IMAGE_NAME}:${CI_COMMIT_SHA}-arm64
+      buildah --storage-driver=overlay manifest push --all ${IMAGE_NAME}:${CI_COMMIT_SHA} docker://${IMAGE_NAME}:${CI_COMMIT_SHA}
 
-      # Create manifest for branch/tag
-      manifest-tool push from-args \
-        --platforms linux/amd64,linux/arm64 \
-        --template "${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-ARCH" \
-        --target "${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}"
+      # Create and push manifest for branch/tag
+      buildah --storage-driver=overlay manifest create ${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}
+      buildah --storage-driver=overlay manifest add ${IMAGE_NAME}:${CI_COMMIT_REF_SLUG} docker://${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-amd64
+      buildah --storage-driver=overlay manifest add ${IMAGE_NAME}:${CI_COMMIT_REF_SLUG} docker://${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-arm64
+      buildah --storage-driver=overlay manifest push --all ${IMAGE_NAME}:${CI_COMMIT_REF_SLUG} docker://${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}
   tags:
-    - docker
+    - kubernetes
   dependencies:
     - build:amd64
     - build:arm64
@@ -97,19 +97,19 @@ manifest:
 # Create latest tag for main branch
 manifest:latest:
   stage: manifest
-  image: mplatform/manifest-tool:alpine
+  image: quay.io/buildah/stable:latest
   script:
     - |
       # Login to registry
-      echo "${CI_REGISTRY_PASSWORD}" | manifest-tool login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
+      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
 
-      # Create manifest for latest
-      manifest-tool push from-args \
-        --platforms linux/amd64,linux/arm64 \
-        --template "${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-ARCH" \
-        --target "${IMAGE_NAME}:latest"
+      # Create and push manifest for latest
+      buildah --storage-driver=overlay manifest create ${IMAGE_NAME}:latest
+      buildah --storage-driver=overlay manifest add ${IMAGE_NAME}:latest docker://${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-amd64
+      buildah --storage-driver=overlay manifest add ${IMAGE_NAME}:latest docker://${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-arm64
+      buildah --storage-driver=overlay manifest push --all ${IMAGE_NAME}:latest docker://${IMAGE_NAME}:latest
   tags:
-    - docker
+    - kubernetes
   dependencies:
     - build:amd64
     - build:arm64
