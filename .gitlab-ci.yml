@@ -3,7 +3,9 @@ stages:
   - manifest
 
 variables:
-  IMAGE_NAME: ${CI_REGISTRY_IMAGE}
+  # Use registry.partizani.eu instead of default GitLab registry
+  IMAGE_NAME: "registry.partizani.eu/${CI_PROJECT_PATH}"
+  REGISTRY_URL: "registry.partizani.eu"
 
 # Build AMD64 image
 build:amd64:
@@ -12,7 +14,7 @@ build:amd64:
   script:
     - |
       # Login to GitLab container registry
-      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
+      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${REGISTRY_URL}
 
       # Pull previous image for layer caching
       buildah --storage-driver=overlay pull ${IMAGE_NAME}:latest || true
@@ -42,7 +44,7 @@ build:arm64:
   script:
     - |
       # Login to GitLab container registry
-      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
+      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${REGISTRY_URL}
 
       # Pull previous image for layer caching
       buildah --storage-driver=overlay pull ${IMAGE_NAME}:latest || true
@@ -72,7 +74,7 @@ manifest:
   script:
     - |
       # Login to registry
-      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
+      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${REGISTRY_URL}
 
       # Create and push manifest for commit SHA
       buildah --storage-driver=overlay manifest create ${IMAGE_NAME}:${CI_COMMIT_SHA}
@@ -101,7 +103,7 @@ manifest:latest:
   script:
     - |
       # Login to registry
-      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${CI_REGISTRY}
+      echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${REGISTRY_URL}
 
       # Create and push manifest for latest
       buildah --storage-driver=overlay manifest create ${IMAGE_NAME}:latest
