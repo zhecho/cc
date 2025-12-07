@@ -12,6 +12,7 @@ variables:
 build:amd64:
   stage: build
   image: quay.io/buildah/stable:latest
+  resource_group: buildah-storage
   script:
     - |
       # Login to GitLab container registry
@@ -47,6 +48,7 @@ build:amd64:
 build:arm64:
   stage: build
   image: quay.io/buildah/stable:latest
+  resource_group: buildah-storage
   script:
     - |
       # Login to GitLab container registry
