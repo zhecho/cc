@@ -7,24 +7,13 @@ variables:
   IMAGE_NAME: "registry.partizani.eu/${CI_PROJECT_PATH}"
   REGISTRY_URL: "registry.partizani.eu"
 
-# Build AMD64 image
+# Build AMD64 image (cross-compilation on ARM64 cluster with QEMU)
+# Note: QEMU user-static is installed on all K3s nodes for cross-platform builds
 build:amd64:
   stage: build
   image: quay.io/buildah/stable:latest
   script:
     - |
-      # Setup QEMU for cross-platform builds (ARM64 host building AMD64 images)
-      # Install qemu-user-static if not present
-      if ! command -v qemu-x86_64-static &> /dev/null; then
-        dnf install -y qemu-user-static || microdnf install -y qemu-user-static || apk add --no-cache qemu-x86_64 || true
-      fi
-
-      # Register binfmt_misc handlers for x86_64 emulation
-      # This allows the ARM64 host to execute AMD64 binaries
-      if [ -f /proc/sys/fs/binfmt_misc/register ]; then
-        echo ':qemu-x86_64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x3e\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-x86_64-static:OCF' > /proc/sys/fs/binfmt_misc/register 2>/dev/null || echo "binfmt_misc already registered or not available"
-      fi
-
       # Login to GitLab container registry
       echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${REGISTRY_URL}
 
@@ -36,6 +25,7 @@ build:amd64:
       fi
 
       # Build AMD64 image with caching (if available)
+      # QEMU emulation handles AMD64 binary execution on ARM64 hosts
       buildah --storage-driver=overlay bud \
         --arch amd64 \
         --layers \
