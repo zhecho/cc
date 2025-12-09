@@ -243,19 +243,19 @@ RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@anthropic-ai/claude-c
     chmod +x /usr/local/bin/claude-wrapper && \
     ln -sf /usr/local/bin/claude-wrapper /usr/local/bin/claude
 
-# Install Gemini CLI globally
-RUN npm install -g @google/gemini-cli
+# Install Gemini CLI globally (DISABLED - causes segfault with QEMU AMD64 emulation)
+# RUN npm install -g @google/gemini-cli
 
-# Create a simple wrapper script for gemini command
-RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@google/gemini-cli/cli.js "$@"\n' > /usr/local/bin/gemini-wrapper && \
-    chmod +x /usr/local/bin/gemini-wrapper && \
-    ln -sf /usr/local/bin/gemini-wrapper /usr/local/bin/gemini
+# Create a simple wrapper script for gemini command (DISABLED)
+# RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@google/gemini-cli/cli.js "$@"\n' > /usr/local/bin/gemini-wrapper && \
+#     chmod +x /usr/local/bin/gemini-wrapper && \
+#     ln -sf /usr/local/bin/gemini-wrapper /usr/local/bin/gemini
 
 # Security hardening
 RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/crush /usr/local/bin/argo /usr/local/bin/helm /usr/local/bin/terraform /usr/local/bin/tfswitch
 
 # Create directories with proper permissions
-RUN mkdir -p /home/claude/.claude /home/claude/.gemini /workspace && \
+RUN mkdir -p /home/claude/.claude /workspace && \
     chown -R claude:claude /home/claude /workspace
 
 # Switch to non-root user
