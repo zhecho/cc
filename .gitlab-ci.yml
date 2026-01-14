@@ -18,19 +18,11 @@ build:amd64:
       # Login to GitLab container registry
       echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${REGISTRY_URL}
 
-      # # Pull previous image for layer caching (if exists)
-      # if buildah --storage-driver=overlay pull ${IMAGE_NAME}:latest; then
-      #   CACHE_ARGS="--cache-from ${IMAGE_NAME}:latest"
-      # else
-      #   CACHE_ARGS=""
-      # fi
-
       # Build AMD64 image with caching (if available)
       # QEMU emulation handles AMD64 binary execution on ARM64 hosts
       buildah --storage-driver=overlay bud \
         --arch amd64 \
         --layers \
-        # $CACHE_ARGS \
         -t ${IMAGE_NAME}:${CI_COMMIT_SHA}-amd64 \
         -t ${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-amd64 \
         -f Dockerfile .
@@ -54,18 +46,10 @@ build:arm64:
       # Login to GitLab container registry
       echo ${CI_REGISTRY_PASSWORD} | buildah login -u ${CI_REGISTRY_USER} --password-stdin ${REGISTRY_URL}
 
-      # # Pull previous image for layer caching (if exists)
-      # if buildah --storage-driver=overlay pull ${IMAGE_NAME}:latest; then
-      #   CACHE_ARGS="--cache-from ${IMAGE_NAME}:latest"
-      # else
-      #   CACHE_ARGS=""
-      # fi
-
       # Build ARM64 image with caching (if available)
       buildah --storage-driver=overlay bud \
         --arch arm64 \
         --layers \
-        # $CACHE_ARGS \
         -t ${IMAGE_NAME}:${CI_COMMIT_SHA}-arm64 \
         -t ${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}-arm64 \
         -f Dockerfile .
