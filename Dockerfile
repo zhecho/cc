@@ -2,16 +2,16 @@
 FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 
 # Version arguments for static version management
-ARG KUBECTL_VERSION=v1.34.1
-ARG K9S_VERSION=v0.50.16
-ARG GLAB_VERSION=v1.74.0
-ARG HELM_VERSION=v3.19.0
-ARG ARGO_VERSION=v3.7.3
-ARG TERRAFORM_VERSION=1.13.4
-ARG AWSCLI_VERSION=2.31.18
-ARG BOTO3_VERSION=1.40.55
+ARG KUBECTL_VERSION=v1.35.0
+ARG K9S_VERSION=v0.50.18
+ARG GLAB_VERSION=v1.81.0
+ARG HELM_VERSION=v3.20.0
+ARG ARGO_VERSION=v3.7.8
+ARG TERRAFORM_VERSION=1.14.3
+ARG AWSCLI_VERSION=2.33.5
+ARG BOTO3_VERSION=1.42.33
 ARG OPENSSL_VERSION=3.5.1
-ARG CRUSH_VERSION=0.12.0
+ARG CRUSH_VERSION=0.34.0
 
 # Install build dependencies
 RUN apk update && apk add --no-cache \
@@ -82,13 +82,13 @@ RUN ARCH=$(uname -m) && \
 FROM cgr.dev/chainguard/wolfi-base:latest
 
 # Version arguments for final stage
-ARG TERRAFORM_VERSION=1.13.4
+ARG TERRAFORM_VERSION=1.14.3
 ARG TERRAFORM_VERSION_157=1.5.7
-ARG ARGO_VERSION=v3.7.3
-ARG AWSCLI_VERSION=2.31.18
-ARG BOTO3_VERSION=1.40.55
+ARG ARGO_VERSION=v3.7.8
+ARG AWSCLI_VERSION=2.33.5
+ARG BOTO3_VERSION=1.42.33
 ARG OPENSSL_VERSION=3.5.1
-ARG CRUSH_VERSION=0.12.0
+ARG CRUSH_VERSION=0.34.0
 
 # Install available packages from Chainguard repositories
 RUN apk update && apk add --no-cache \
@@ -159,7 +159,7 @@ RUN ARCH=$(uname -m) && \
     else \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
-    curl -L "https://get.helm.sh/helm-v3.19.0-linux-${HELM_ARCH}.tar.gz" -o helm.tar.gz && \
+    curl -L "https://get.helm.sh/helm-v3.20.0-linux-${HELM_ARCH}.tar.gz" -o helm.tar.gz && \
     tar -xzf helm.tar.gz && \
     chmod +x linux-${HELM_ARCH}/helm && \
     mv linux-${HELM_ARCH}/helm /usr/local/bin/ && \
@@ -205,17 +205,17 @@ RUN ARCH=$(uname -m) && \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
     # Install tfswitch from GitHub releases \
-    TFSWITCH_VERSION="v1.7.0" && \
+    TFSWITCH_VERSION="v1.13.0" && \
     curl -L "https://github.com/warrensbox/terraform-switcher/releases/download/${TFSWITCH_VERSION}/terraform-switcher_${TFSWITCH_VERSION}_linux_${TF_ARCH}.tar.gz" -o tfswitch.tar.gz && \
     tar -xzf tfswitch.tar.gz && \
     chmod +x tfswitch && \
     mv tfswitch /usr/local/bin/ && \
     rm tfswitch.tar.gz && \
-    # Install terraform 1.13.4 (latest) \
+    # Install terraform 1.14.3 (latest) \
     curl -L "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TF_ARCH}.zip" -o terraform_latest.zip && \
     unzip terraform_latest.zip && \
     chmod +x terraform && \
-    mv terraform /usr/local/bin/terraform-1.13.4 && \
+    mv terraform /usr/local/bin/terraform-1.14.3 && \
     rm terraform_latest.zip && \
     # Install terraform 1.5.7 \
     curl -L "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION_157}/terraform_${TERRAFORM_VERSION_157}_linux_${TF_ARCH}.zip" -o terraform_157.zip && \
@@ -224,7 +224,7 @@ RUN ARCH=$(uname -m) && \
     mv terraform /usr/local/bin/terraform-1.5.7 && \
     rm terraform_157.zip && \
     # Set default terraform version (latest) \
-    ln -sf /usr/local/bin/terraform-1.13.4 /usr/local/bin/terraform
+    ln -sf /usr/local/bin/terraform-1.14.3 /usr/local/bin/terraform
 
 # Copy other tools from builder stage
 COPY --from=builder /usr/local/bin/kubectl /usr/local/bin/kubectl
@@ -236,7 +236,7 @@ RUN deluser --remove-home $(getent passwd 1000 | cut -d: -f1) 2>/dev/null || tru
     adduser -D -s /bin/bash -u 1000 claude
 
 # Install Claude Code CLI globally
-RUN npm install -g @anthropic-ai/claude-code@2.1.6
+RUN npm install -g @anthropic-ai/claude-code@2.1.17
 
 # Create a simple wrapper script for claude command
 RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js "$@"\n' > /usr/local/bin/claude-wrapper && \
