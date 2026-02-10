@@ -236,7 +236,7 @@ RUN deluser --remove-home $(getent passwd 1000 | cut -d: -f1) 2>/dev/null || tru
     adduser -D -s /bin/bash -u 1000 claude
 
 # Install Claude Code CLI globally
-RUN npm install -g @anthropic-ai/claude-code@2.1.6
+RUN npm install -g @anthropic-ai/claude-code@2.1.38
 
 # Create a simple wrapper script for claude command
 RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js "$@"\n' > /usr/local/bin/claude-wrapper && \
