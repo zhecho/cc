@@ -5,13 +5,13 @@ FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 ARG KUBECTL_VERSION=v1.35.2
 ARG K9S_VERSION=v0.50.18
 ARG GLAB_VERSION=v1.89.0
-ARG HELM_VERSION=v4.1.1
-ARG ARGO_VERSION=v4.0.1
-ARG TERRAFORM_VERSION=1.14.6
-ARG AWSCLI_VERSION=2.34.3
-ARG BOTO3_VERSION=1.42.62
+ARG HELM_VERSION=v4.1.3
+ARG ARGO_VERSION=v4.0.2
+ARG TERRAFORM_VERSION=1.14.7
+ARG AWSCLI_VERSION=2.34.8
+ARG BOTO3_VERSION=1.42.67
 ARG OPENSSL_VERSION=3.5.1
-ARG CRUSH_VERSION=0.47.2
+ARG CRUSH_VERSION=0.48.0
 
 # Install build dependencies
 RUN apk update && apk add --no-cache \
@@ -82,14 +82,14 @@ RUN ARCH=$(uname -m) && \
 FROM cgr.dev/chainguard/wolfi-base:latest
 
 # Version arguments for final stage
-ARG TERRAFORM_VERSION=1.14.6
+ARG TERRAFORM_VERSION=1.14.7
 ARG TERRAFORM_VERSION_157=1.5.7
-ARG ARGO_VERSION=v4.0.1
-ARG AWSCLI_VERSION=2.34.3
-ARG BOTO3_VERSION=1.42.62
+ARG ARGO_VERSION=v4.0.2
+ARG AWSCLI_VERSION=2.34.8
+ARG BOTO3_VERSION=1.42.67
 ARG OPENSSL_VERSION=3.5.1
-ARG CRUSH_VERSION=0.47.2
-ARG HELM_VERSION=v4.1.1
+ARG CRUSH_VERSION=0.48.0
+ARG HELM_VERSION=v4.1.3
 
 # Install available packages from Chainguard repositories
 RUN apk update && apk add --no-cache \
@@ -206,7 +206,7 @@ RUN ARCH=$(uname -m) && \
         echo "Unsupported architecture: $ARCH" && exit 1; \
     fi && \
     # Install tfswitch from GitHub releases \
-    TFSWITCH_VERSION="v1.14.0" && \
+    TFSWITCH_VERSION="v1.15.0" && \
     curl -L "https://github.com/warrensbox/terraform-switcher/releases/download/${TFSWITCH_VERSION}/terraform-switcher_${TFSWITCH_VERSION}_linux_${TF_ARCH}.tar.gz" -o tfswitch.tar.gz && \
     tar -xzf tfswitch.tar.gz && \
     chmod +x tfswitch && \
@@ -237,7 +237,7 @@ RUN deluser --remove-home $(getent passwd 1000 | cut -d: -f1) 2>/dev/null || tru
     adduser -D -s /bin/bash -u 1000 claude
 
 # Install Claude Code CLI globally
-RUN npm install -g @anthropic-ai/claude-code@2.1.70
+RUN npm install -g @anthropic-ai/claude-code@2.1.74
 
 # Create a simple wrapper script for claude command
 RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js "$@"\n' > /usr/local/bin/claude-wrapper && \

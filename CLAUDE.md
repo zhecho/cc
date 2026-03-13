@@ -73,12 +73,12 @@ Version arguments are centralized at the top of the Dockerfile:
 - `KUBECTL_VERSION`: Kubernetes CLI version (v1.35.2)
 - `K9S_VERSION`: Kubernetes cluster management UI version (v0.50.18)
 - `GLAB_VERSION`: GitLab CLI version (v1.89.0)
-- `HELM_VERSION`: Kubernetes package manager (v4.1.1)
-- `ARGO_VERSION`: Argo Workflows CLI (v4.0.1)
-- `TERRAFORM_VERSION`: Default Terraform version (1.14.6)
+- `HELM_VERSION`: Kubernetes package manager (v4.1.3)
+- `ARGO_VERSION`: Argo Workflows CLI (v4.0.2)
+- `TERRAFORM_VERSION`: Default Terraform version (1.14.7)
 - `TERRAFORM_VERSION_157`: Alternative Terraform version (1.5.7)
-- `AWSCLI_VERSION`: AWS CLI v2 version (2.34.3)
-- `BOTO3_VERSION`: AWS SDK for Python version (1.42.62)
+- `AWSCLI_VERSION`: AWS CLI v2 version (2.34.8)
+- `BOTO3_VERSION`: AWS SDK for Python version (1.42.67)
 
 ## Installed Tools
 
