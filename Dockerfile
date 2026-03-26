@@ -2,16 +2,16 @@
 FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 
 # Version arguments for static version management
-ARG KUBECTL_VERSION=v1.35.2
+ARG KUBECTL_VERSION=v1.35.3
 ARG K9S_VERSION=v0.50.18
-ARG GLAB_VERSION=v1.89.0
+ARG GLAB_VERSION=v1.90.0
 ARG HELM_VERSION=v4.1.3
-ARG ARGO_VERSION=v4.0.2
-ARG TERRAFORM_VERSION=1.14.7
+ARG ARGO_VERSION=v4.0.3
+ARG TERRAFORM_VERSION=1.14.8
 ARG AWSCLI_VERSION=2.34.8
-ARG BOTO3_VERSION=1.42.67
+ARG BOTO3_VERSION=1.42.76
 ARG OPENSSL_VERSION=3.5.1
-ARG CRUSH_VERSION=0.48.0
+ARG CRUSH_VERSION=0.52.0
 
 # Install build dependencies
 RUN apk update && apk add --no-cache \
@@ -82,13 +82,13 @@ RUN ARCH=$(uname -m) && \
 FROM cgr.dev/chainguard/wolfi-base:latest
 
 # Version arguments for final stage
-ARG TERRAFORM_VERSION=1.14.7
+ARG TERRAFORM_VERSION=1.14.8
 ARG TERRAFORM_VERSION_157=1.5.7
-ARG ARGO_VERSION=v4.0.2
+ARG ARGO_VERSION=v4.0.3
 ARG AWSCLI_VERSION=2.34.8
-ARG BOTO3_VERSION=1.42.67
+ARG BOTO3_VERSION=1.42.76
 ARG OPENSSL_VERSION=3.5.1
-ARG CRUSH_VERSION=0.48.0
+ARG CRUSH_VERSION=0.52.0
 ARG HELM_VERSION=v4.1.3
 
 # Install available packages from Chainguard repositories
@@ -237,7 +237,7 @@ RUN deluser --remove-home $(getent passwd 1000 | cut -d: -f1) 2>/dev/null || tru
     adduser -D -s /bin/bash -u 1000 claude
 
 # Install Claude Code CLI globally
-RUN npm install -g @anthropic-ai/claude-code@2.1.74
+RUN npm install -g @anthropic-ai/claude-code@2.1.84
 
 # Create a simple wrapper script for claude command
 RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js "$@"\n' > /usr/local/bin/claude-wrapper && \
