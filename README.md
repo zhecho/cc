@@ -13,7 +13,7 @@ A secure, minimal containerized version of Claude Code CLI with the latest cloud
   - Claude Code CLI - AI-powered development assistant
 
 - **Security & Optimization:**
-  - Multi-stage build for minimal image size 
+  - Multi-stage build for minimal image size
   - Chainguard Images (Wolfi Linux) base for maximum security and glibc compatibility
   - Non-root user (UID 1000) for security
   - Proper file permissions and security hardening
@@ -180,7 +180,7 @@ podman run --privileged --userns=keep-id --rm -it \
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Claude Code CLI | Latest | AI-powered development assistant |
+| Claude Code CLI | 2.1.87                                  | AI-powered development assistant |
 | AWS CLI v2 | 2.27.50 | Amazon Web Services command-line interface |
 | kubectl | v1.33.2 | Kubernetes command-line tool |
 | k9s | v0.50.6 | Kubernetes cluster management UI |
