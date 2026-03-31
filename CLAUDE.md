@@ -4,18 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a containerized version of Claude Code CLI bundled with essential cloud and DevOps tools. It provides a secure, portable development environment using Chainguard Images (Wolfi Linux) as the base for maximum security and glibc compatibility.
+This is a containerized version of Claude Code CLI bundled with essential cloud
+and DevOps tools. It provides a secure, portable development environment using
+Chainguard Images (Wolfi Linux) as the base for maximum security and glibc
+compatibility.
 
 ## Container Build Commands
 
 ### Build the container image locally
 ```bash
 podman build -t claude-code-secure .
-```
-
-### Build using Docker Compose
-```bash
-docker-compose build
 ```
 
 ### Build multi-platform image (matches GitHub Actions)
@@ -31,11 +29,6 @@ podman run --privileged --userns=keep-id --rm -it \
   -v ./.:/workspace \
   -v ~/.claude:/home/claude/.claude:Z \
   claude-code-secure:latest
-```
-
-### Using Docker Compose
-```bash
-docker-compose run --rm claude-code
 ```
 
 ### Run specific commands
@@ -150,5 +143,5 @@ The container runs with:
 ## Development Memories
 
 - I expect after adding some new package in the image to build it with podman and push it to git in order pipeline to create new container image
-- Execute all git commands as a oneliner i.e. commit push tag if there is tag 
+- Execute all git commands as a oneliner i.e. commit push tag if there is tag
 - If you add some package and need curl | wget download just try to download locally first and then continue with build
