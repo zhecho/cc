@@ -90,6 +90,7 @@ ARG BOTO3_VERSION=1.42.89
 ARG OPENSSL_VERSION=3.5.1
 ARG CRUSH_VERSION=0.58.0
 ARG HELM_VERSION=v4.1.4
+ARG MCP_ATLASSIAN_VERSION=0.21.1
 
 # Install available packages from Chainguard repositories
 RUN apk update && apk add --no-cache \
@@ -146,6 +147,12 @@ RUN ARCH=$(uname -m) && \
     python3 -m venv /opt/aws-venv && \
     /opt/aws-venv/bin/pip install --upgrade pip && \
     /opt/aws-venv/bin/pip install boto3==${BOTO3_VERSION}
+
+# Install mcp-atlassian MCP server in its own virtual environment
+RUN python3 -m venv /opt/mcp-atlassian-venv && \
+    /opt/mcp-atlassian-venv/bin/pip install --upgrade pip && \
+    /opt/mcp-atlassian-venv/bin/pip install mcp-atlassian==${MCP_ATLASSIAN_VERSION} && \
+    ln -sf /opt/mcp-atlassian-venv/bin/mcp-atlassian /usr/local/bin/mcp-atlassian
 
 # Create a wrapper script for python3 that includes AWS venv in path
 RUN printf '#!/bin/bash\nexport PYTHONPATH="/opt/aws-venv/lib/python3.12/site-packages:$PYTHONPATH"\nexec /usr/bin/python3 "$@"\n' > /usr/local/bin/python3-aws && \
@@ -253,7 +260,7 @@ RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@anthropic-ai/claude-c
 #     ln -sf /usr/local/bin/gemini-wrapper /usr/local/bin/gemini
 
 # Security hardening
-RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/crush /usr/local/bin/argo /usr/local/bin/helm /usr/local/bin/terraform /usr/local/bin/tfswitch
+RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/crush /usr/local/bin/argo /usr/local/bin/helm /usr/local/bin/terraform /usr/local/bin/tfswitch /usr/local/bin/mcp-atlassian
 
 # Create directories with proper permissions
 RUN mkdir -p /home/claude/.claude /workspace && \

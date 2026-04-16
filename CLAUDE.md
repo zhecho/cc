@@ -72,6 +72,7 @@ Version arguments are centralized at the top of the Dockerfile:
 - `TERRAFORM_VERSION_157`: Alternative Terraform version (1.5.7)
 - `AWSCLI_VERSION`: AWS CLI v2 version (2.34.30)
 - `BOTO3_VERSION`: AWS SDK for Python version (1.42.89)
+- `MCP_ATLASSIAN_VERSION`: mcp-atlassian MCP server version (0.21.1)
 
 ## Installed Tools
 
@@ -89,6 +90,29 @@ The container includes these pre-installed tools:
 - **Node.js & npm**: JavaScript runtime and package manager
 - **jq & yq**: JSON and YAML processors
 - **podman & skopeo**: Container tools
+- **mcp-atlassian**: Atlassian MCP server for Jira & Confluence integration with Claude Code
+
+## mcp-atlassian Configuration
+
+The `mcp-atlassian` binary is pre-installed. To enable it in Claude Code, run once inside the container:
+
+```bash
+# Jira + Confluence (cloud, token-based)
+claude mcp add atlassian -- mcp-atlassian \
+  --confluence-url https://your-org.atlassian.net/wiki \
+  --confluence-username your@email.com \
+  --confluence-token YOUR_API_TOKEN \
+  --jira-url https://your-org.atlassian.net \
+  --jira-username your@email.com \
+  --jira-token YOUR_API_TOKEN
+
+# Or pass credentials via environment variables (preferred for containers)
+claude mcp add atlassian -e CONFLUENCE_URL -e CONFLUENCE_USERNAME \
+  -e CONFLUENCE_TOKEN -e JIRA_URL -e JIRA_USERNAME -e JIRA_TOKEN \
+  -- mcp-atlassian
+```
+
+Since `~/.claude` is a mounted volume, the MCP config persists across container restarts.
 
 ## Terraform Version Management
 
