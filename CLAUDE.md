@@ -63,15 +63,15 @@ The Dockerfile uses a multi-stage build pattern:
 
 ### Tool Versions
 Version arguments are centralized at the top of the Dockerfile:
-- `KUBECTL_VERSION`: Kubernetes CLI version (v1.35.3)
+- `KUBECTL_VERSION`: Kubernetes CLI version (v1.35.4)
 - `K9S_VERSION`: Kubernetes cluster management UI version (v0.50.18)
-- `GLAB_VERSION`: GitLab CLI version (v1.90.0)
-- `HELM_VERSION`: Kubernetes package manager (v4.1.3)
-- `ARGO_VERSION`: Argo Workflows CLI (v4.0.3)
+- `GLAB_VERSION`: GitLab CLI version (v1.92.1)
+- `HELM_VERSION`: Kubernetes package manager (v4.1.4)
+- `ARGO_VERSION`: Argo Workflows CLI (v4.0.4)
 - `TERRAFORM_VERSION`: Default Terraform version (1.14.8)
 - `TERRAFORM_VERSION_157`: Alternative Terraform version (1.5.7)
-- `AWSCLI_VERSION`: AWS CLI v2 version (2.34.8)
-- `BOTO3_VERSION`: AWS SDK for Python version (1.42.76)
+- `AWSCLI_VERSION`: AWS CLI v2 version (2.34.30)
+- `BOTO3_VERSION`: AWS SDK for Python version (1.42.89)
 
 ## Installed Tools
 
@@ -117,7 +117,7 @@ Essential directories to mount:
 - `/home/claude/.aws`: AWS CLI credentials (optional)
 - `/home/claude/.kube`: Kubernetes configuration (optional)
 
-## GitHub Actions Integration
+## GitHub and GitLab Integration
 
 The repository includes automated CI/CD via `.github/workflows/build.yml`:
 - Builds multi-platform images (linux/amd64, linux/arm64)
@@ -125,13 +125,17 @@ The repository includes automated CI/CD via `.github/workflows/build.yml`:
 - Triggers on pushes to main branch and pull requests
 - Uses semantic versioning with branch, PR, and SHA tags
 
+The repository includes automated CI/CD via `.gitlab-ci.yml` for GitLab server:
+- Builds multi-platform images (linux/amd64, linux/arm64)
+- Pushes to GitHub Container Registry (gitlab.partizani.eu)
+- Triggers on pushes to main branch and pull requests
+
 ## Development Workflow
 
 1. Make changes to the Dockerfile or supporting files
 2. Build locally to test: `podman build -t claude-code-secure .`
 3. Run container to verify functionality
 4. Push changes to trigger GitHub Actions build
-5. Published images available at `ghcr.io/zhecho/claude-code`
 
 ## Environment Variables
 
@@ -142,6 +146,22 @@ The container runs with:
 
 ## Development Memories
 
-- I expect after adding some new package in the image to build it with podman and push it to git in order pipeline to create new container image
+- I expect after adding some new package in the image to build it with podman
+and push it to git in order pipeline to create new container image
+- When you do upgrade of the image and in order to not halucinate with
+fictionary versions of the software packages use Dockerfile to see url that
+current one's are downloaded and check new versions there.
 - Execute all git commands as a oneliner i.e. commit push tag if there is tag
-- If you add some package and need curl | wget download just try to download locally first and then continue with build
+- If you add some package and need curl | wget download just try to download
+locally first and then continue with build
+
+
+
+
+
+
+
+
+
+
+
