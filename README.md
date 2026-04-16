@@ -148,6 +148,106 @@ tfswitch -u
 
 **Note**: tfswitch requires write permissions to /usr/local/bin, so it works best in interactive sessions where you can manage the symlinks in your home directory.
 
+## mcp-atlassian — Jira & Confluence MCP Server
+
+The container ships `mcp-atlassian` (`/usr/local/bin/mcp-atlassian`), giving Claude Code direct access to Jira and Confluence. Configuration is done once via `claude mcp add`; the result is written to `~/.claude/` which is your mounted volume, so it persists across container restarts.
+
+### Option 1: `.env` file (recommended for containers)
+
+Create a file on your host (e.g. `~/.atlassian.env`) — keep it out of git:
+
+```bash
+# Atlassian Cloud
+JIRA_URL=https://your-org.atlassian.net
+JIRA_USERNAME=your@email.com
+JIRA_API_TOKEN=your_api_token
+
+CONFLUENCE_URL=https://your-org.atlassian.net/wiki
+CONFLUENCE_USERNAME=your@email.com
+CONFLUENCE_API_TOKEN=your_api_token
+
+# Server / Data Center (use instead of the above)
+# JIRA_URL=https://jira.your-company.com
+# JIRA_PERSONAL_TOKEN=your_pat
+# JIRA_SSL_VERIFY=false
+# CONFLUENCE_URL=https://confluence.your-company.com
+# CONFLUENCE_PERSONAL_TOKEN=your_pat
+# CONFLUENCE_SSL_VERIFY=false
+
+# Optional filters (comma-separated)
+# JIRA_PROJECTS_FILTER=PROJ,DEV
+# CONFLUENCE_SPACES_FILTER=DEV,TEAM
+# READ_ONLY_MODE=false
+```
+
+Register the MCP server inside the container (once):
+
+```bash
+claude mcp add atlassian -- mcp-atlassian --env-file /home/claude/.atlassian.env
+```
+
+Run the container with the env file mounted:
+
+```bash
+podman run --privileged --userns=keep-id --rm -it \
+  -v ./.:/workspace \
+  -v ~/.claude:/home/claude/.claude:Z \
+  -v ~/.atlassian.env:/home/claude/.atlassian.env:Z \
+  claude-code-secure:latest
+```
+
+### Option 2: Environment variables at runtime
+
+Pass credentials directly via `-e` flags — useful in CI or when the env file is managed externally:
+
+```bash
+podman run --privileged --userns=keep-id --rm -it \
+  -v ./.:/workspace \
+  -v ~/.claude:/home/claude/.claude:Z \
+  -e JIRA_URL=https://your-org.atlassian.net \
+  -e JIRA_USERNAME=your@email.com \
+  -e JIRA_API_TOKEN=your_api_token \
+  -e CONFLUENCE_URL=https://your-org.atlassian.net/wiki \
+  -e CONFLUENCE_USERNAME=your@email.com \
+  -e CONFLUENCE_API_TOKEN=your_api_token \
+  claude-code-secure:latest
+```
+
+Register the MCP server to forward those env vars (once):
+
+```bash
+claude mcp add atlassian \
+  -e JIRA_URL -e JIRA_USERNAME -e JIRA_API_TOKEN \
+  -e CONFLUENCE_URL -e CONFLUENCE_USERNAME -e CONFLUENCE_API_TOKEN \
+  -- mcp-atlassian
+```
+
+### Full list of supported environment variables
+
+| Variable | Purpose |
+|---|---|
+| `JIRA_URL` | Jira instance URL |
+| `JIRA_USERNAME` | Email (Cloud) or username (Server) |
+| `JIRA_API_TOKEN` | API token (Cloud) |
+| `JIRA_PERSONAL_TOKEN` | Personal Access Token (Server/DC) |
+| `JIRA_SSL_VERIFY` | `true`/`false` — disable for self-signed certs |
+| `CONFLUENCE_URL` | Confluence instance URL |
+| `CONFLUENCE_USERNAME` | Email (Cloud) or username (Server) |
+| `CONFLUENCE_API_TOKEN` | API token (Cloud) |
+| `CONFLUENCE_PERSONAL_TOKEN` | Personal Access Token (Server/DC) |
+| `CONFLUENCE_SSL_VERIFY` | `true`/`false` |
+| `JIRA_PROJECTS_FILTER` | Comma-separated project keys to restrict access |
+| `CONFLUENCE_SPACES_FILTER` | Comma-separated space keys to restrict access |
+| `ENABLED_TOOLS` | Whitelist specific tool names |
+| `TOOLSETS` | Enable tool groups: `default`, `all`, or combinations |
+| `READ_ONLY_MODE` | `true` disables all write operations |
+| `MCP_VERBOSE` | `true` enables verbose logging |
+| `HTTP_PROXY` / `HTTPS_PROXY` | Proxy for outbound requests |
+| `JIRA_CUSTOM_HEADERS` | Extra HTTP headers (`key=value,key2=value2`) |
+| `CONFLUENCE_CUSTOM_HEADERS` | Extra HTTP headers per service |
+
+Full documentation: https://mcp-atlassian.soomiles.com/docs/configuration
+
 ## Volume Mounts
 
 - `/workspace` - Your project directory
@@ -198,6 +298,7 @@ podman run --privileged --userns=keep-id --rm -it \
 | binutils | Latest | Binary utilities |
 | podman | 5.5.2 | Container runtime |
 | skopeo | 1.19.0 | Container image inspector |
+| mcp-atlassian | 0.21.1 | Jira & Confluence MCP server for Claude Code |
 
 ## Security Features
 
