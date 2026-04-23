@@ -1,6 +1,7 @@
 stages:
   - build
   - manifest
+  - scan
 
 variables:
   # Use registry.partizani.eu instead of default GitLab registry
@@ -113,3 +114,44 @@ manifest:latest:
     - build:arm64
   only:
     - main
+
+# Scan built image with Trivy for HIGH/CRITICAL vulnerabilities
+trivy:scan:
+  stage: scan
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - |
+      # Print table report to CI log
+      trivy image \
+        --username ${CI_REGISTRY_USER} \
+        --password ${CI_REGISTRY_PASSWORD} \
+        --severity HIGH,CRITICAL \
+        --format table \
+        --exit-code 0 \
+        ${IMAGE_NAME}:${CI_COMMIT_SHA}-amd64
+
+      # Save JSON report as pipeline artifact
+      trivy image \
+        --username ${CI_REGISTRY_USER} \
+        --password ${CI_REGISTRY_PASSWORD} \
+        --severity HIGH,CRITICAL \
+        --format json \
+        --output trivy-report.json \
+        --exit-code 0 \
+        ${IMAGE_NAME}:${CI_COMMIT_SHA}-amd64
+  tags:
+    - kubernetes
+  allow_failure: true
+  artifacts:
+    when: always
+    name: "trivy-report-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - trivy-report.json
+    expire_in: 30 days
+  dependencies:
+    - build:amd64
+  only:
+    - branches
+    - tags
