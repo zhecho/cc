@@ -73,6 +73,7 @@ Version arguments are centralized at the top of the Dockerfile:
 - `AWSCLI_VERSION`: AWS CLI v2 version (2.34.30)
 - `BOTO3_VERSION`: AWS SDK for Python version (1.42.89)
 - `MCP_ATLASSIAN_VERSION`: mcp-atlassian MCP server version (0.21.1)
+- `TRIVY_VERSION`: Trivy vulnerability scanner version (v0.70.0)
 
 ## Installed Tools
 
@@ -91,6 +92,7 @@ The container includes these pre-installed tools:
 - **jq & yq**: JSON and YAML processors
 - **podman & skopeo**: Container tools
 - **mcp-atlassian**: Atlassian MCP server for Jira & Confluence integration with Claude Code
+- **trivy**: Container and filesystem vulnerability scanner
 
 ## mcp-atlassian Configuration
 
@@ -113,6 +115,79 @@ claude mcp add atlassian -e CONFLUENCE_URL -e CONFLUENCE_USERNAME \
 ```
 
 Since `~/.claude` is a mounted volume, the MCP config persists across container restarts.
+
+## Running with podman play kube (cc-pod.yaml)
+
+The repository includes `cc-pod.yaml` — a Kubernetes pod spec that starts both
+`mcp-atlassian` (SSE server sidecar) and `claude-code` (interactive) as a pod.
+This is the recommended way to run Claude Code with Atlassian integration.
+
+### Quick start
+
+```bash
+# Set Atlassian credentials
+export JIRA_URL=https://your-company.atlassian.net
+export JIRA_USERNAME=your.email@company.com
+export JIRA_API_TOKEN=your_api_token
+export CONFLUENCE_URL=https://your-company.atlassian.net/wiki
+export CONFLUENCE_USERNAME=your.email@company.com
+export CONFLUENCE_API_TOKEN=your_api_token
+
+# From your project directory
+./start-cc.sh
+```
+
+`start-cc.sh` uses `envsubst` to substitute credentials and paths into
+`cc-pod.yaml`, then calls `podman play kube --replace --userns=keep-id`
+and attaches to the `claude-code` container.
+
+Alternatively, run manually:
+
+```bash
+WORKSPACE_DIR=$(pwd) envsubst < cc-pod.yaml | podman play kube --replace --userns=keep-id -
+podman attach cc-claude-code
+```
+
+### Pod structure
+
+| Container | Role | Port |
+|---|---|---|
+| `cc-mcp-atlassian` | mcp-atlassian SSE server | localhost:9000 |
+| `cc-claude-code` | Interactive Claude Code CLI | — |
+
+The `cc-claude-code` container waits for `cc-mcp-atlassian` to accept connections
+on port 9000 before starting Claude Code.
+
+### Volume mounts (equivalent to podman run flags)
+
+| Host path | Container path |
+|---|---|
+| `$WORKSPACE_DIR` (current dir) | `/workspace` |
+| `~/.claude` | `/home/claude/.claude` |
+| `~/.kube` | `/home/claude/.kube` |
+| `~/.git-credentials` | `/home/claude/.git-credentials` |
+
+### One-time MCP SSE configuration (first run only)
+
+Inside the pod, configure Claude Code to connect to the mcp-atlassian SSE server:
+
+```bash
+claude mcp remove atlassian 2>/dev/null
+claude mcp add --transport sse atlassian http://localhost:9000/sse
+```
+
+This writes to `~/.claude/` (the mounted volume) so it persists across pod restarts.
+
+### Stop the pod
+
+```bash
+podman pod stop cc && podman pod rm cc
+```
+
+### Dependencies on host
+
+- `podman` (for running the pod)
+- `envsubst` (for credential substitution — `brew install gettext` on macOS)
 
 ## Terraform Version Management
 

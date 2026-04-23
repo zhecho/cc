@@ -1,0 +1,112 @@
+# cc-pod.yaml — Kubernetes pod spec for Claude Code + mcp-atlassian sidecar
+#
+# Usage:
+#   export JIRA_URL JIRA_USERNAME JIRA_API_TOKEN
+#   export CONFLUENCE_URL CONFLUENCE_USERNAME CONFLUENCE_API_TOKEN
+#   ./start-cc.sh           # from your project directory
+#
+# Or manually:
+#   WORKSPACE_DIR=$(pwd) envsubst < cc-pod.yaml | podman play kube --replace --userns=keep-id -
+#   podman attach cc-claude-code
+#
+# On first run inside the pod, configure MCP SSE once:
+#   claude mcp remove atlassian 2>/dev/null; claude mcp add --transport sse atlassian http://localhost:9000/sse
+#
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cc
+  labels:
+    app: claude-code
+spec:
+  restartPolicy: Never
+
+  containers:
+
+  # ── mcp-atlassian SSE server ────────────────────────────────────────────────
+  - name: mcp-atlassian
+    image: registry.partizani.eu/zgc/cc:latest
+    command: ["mcp-atlassian"]
+    args: ["--transport=sse", "--port=9000"]
+    env:
+    - name: JIRA_URL
+      value: "${JIRA_URL}"
+    - name: JIRA_USERNAME
+      value: "${JIRA_USERNAME}"
+    - name: JIRA_TOKEN
+      value: "${JIRA_API_TOKEN}"
+    - name: JIRA_API_TOKEN
+      value: "${JIRA_API_TOKEN}"
+    - name: CONFLUENCE_URL
+      value: "${CONFLUENCE_URL}"
+    - name: CONFLUENCE_USERNAME
+      value: "${CONFLUENCE_USERNAME}"
+    - name: CONFLUENCE_TOKEN
+      value: "${CONFLUENCE_API_TOKEN}"
+    - name: CONFLUENCE_API_TOKEN
+      value: "${CONFLUENCE_API_TOKEN}"
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
+
+  # ── claude-code (interactive) ───────────────────────────────────────────────
+  - name: claude-code
+    image: registry.partizani.eu/zgc/cc:latest
+    stdin: true
+    tty: true
+    command: ["/bin/bash", "-c"]
+    args:
+    - |
+      echo "Waiting for mcp-atlassian SSE server on :9000 ..."
+      until nc -z localhost 9000 2>/dev/null; do sleep 1; done
+      echo "mcp-atlassian ready."
+      exec claude
+    env:
+    - name: JIRA_URL
+      value: "${JIRA_URL}"
+    - name: JIRA_USERNAME
+      value: "${JIRA_USERNAME}"
+    - name: JIRA_TOKEN
+      value: "${JIRA_API_TOKEN}"
+    - name: JIRA_API_TOKEN
+      value: "${JIRA_API_TOKEN}"
+    - name: CONFLUENCE_URL
+      value: "${CONFLUENCE_URL}"
+    - name: CONFLUENCE_USERNAME
+      value: "${CONFLUENCE_USERNAME}"
+    - name: CONFLUENCE_TOKEN
+      value: "${CONFLUENCE_API_TOKEN}"
+    - name: CONFLUENCE_API_TOKEN
+      value: "${CONFLUENCE_API_TOKEN}"
+    securityContext:
+      privileged: true
+      runAsUser: 1000
+      runAsGroup: 1000
+    volumeMounts:
+    - name: workspace
+      mountPath: /workspace
+    - name: claude-config
+      mountPath: /home/claude/.claude
+    - name: kube-config
+      mountPath: /home/claude/.kube
+    - name: git-credentials
+      mountPath: /home/claude/.git-credentials
+      readOnly: true
+
+  volumes:
+  - name: workspace
+    hostPath:
+      path: ${WORKSPACE_DIR}
+      type: Directory
+  - name: claude-config
+    hostPath:
+      path: ${HOME}/.claude
+      type: Directory
+  - name: kube-config
+    hostPath:
+      path: ${HOME}/.kube
+      type: Directory
+  - name: git-credentials
+    hostPath:
+      path: ${HOME}/.git-credentials
+      type: File

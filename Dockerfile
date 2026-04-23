@@ -12,6 +12,7 @@ ARG AWSCLI_VERSION=2.34.30
 ARG BOTO3_VERSION=1.42.89
 ARG OPENSSL_VERSION=3.5.1
 ARG CRUSH_VERSION=0.58.0
+ARG TRIVY_VERSION=v0.70.0
 
 # Install build dependencies
 RUN apk update && apk add --no-cache \
@@ -91,6 +92,7 @@ ARG OPENSSL_VERSION=3.5.1
 ARG CRUSH_VERSION=0.58.0
 ARG HELM_VERSION=v4.1.4
 ARG MCP_ATLASSIAN_VERSION=0.21.1
+ARG TRIVY_VERSION=v0.70.0
 
 # Install available packages from Chainguard repositories
 RUN apk update && apk add --no-cache \
@@ -234,6 +236,22 @@ RUN ARCH=$(uname -m) && \
     # Set default terraform version (latest) \
     ln -sf /usr/local/bin/terraform-${TERRAFORM_VERSION} /usr/local/bin/terraform
 
+# Install Trivy vulnerability scanner with architecture detection
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        TRIVY_ARCH="64bit"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        TRIVY_ARCH="ARM64"; \
+    else \
+        echo "Unsupported architecture: $ARCH" && exit 1; \
+    fi && \
+    TRIVY_VERSION_NUM="${TRIVY_VERSION#v}" && \
+    curl -L "https://github.com/aquasecurity/trivy/releases/download/${TRIVY_VERSION}/trivy_${TRIVY_VERSION_NUM}_Linux-${TRIVY_ARCH}.tar.gz" -o trivy.tar.gz && \
+    tar -xzf trivy.tar.gz trivy && \
+    chmod +x trivy && \
+    mv trivy /usr/local/bin/trivy && \
+    rm trivy.tar.gz
+
 # Copy other tools from builder stage
 COPY --from=builder /usr/local/bin/kubectl /usr/local/bin/kubectl
 COPY --from=builder /usr/local/bin/k9s /usr/local/bin/k9s
@@ -260,7 +278,13 @@ RUN printf '#!/bin/bash\nnode /usr/local/lib/node_modules/@anthropic-ai/claude-c
 #     ln -sf /usr/local/bin/gemini-wrapper /usr/local/bin/gemini
 
 # Security hardening
-RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/crush /usr/local/bin/argo /usr/local/bin/helm /usr/local/bin/terraform /usr/local/bin/tfswitch /usr/local/bin/mcp-atlassian
+RUN chmod 755 /usr/local/bin/kubectl /usr/local/bin/k9s /usr/local/bin/glab /usr/local/bin/crush /usr/local/bin/argo /usr/local/bin/helm /usr/local/bin/terraform /usr/local/bin/tfswitch /usr/local/bin/mcp-atlassian /usr/local/bin/trivy
+
+# Bundle pod manifests and helper scripts for podman play kube usage
+COPY cc-pod.yaml /home/claude/cc-pod.yaml
+COPY start-cc.sh /home/claude/start-cc.sh
+RUN chmod 644 /home/claude/cc-pod.yaml && \
+    chmod 755 /home/claude/start-cc.sh
 
 # Create directories with proper permissions
 RUN mkdir -p /home/claude/.claude /workspace && \
